@@ -1,24 +1,39 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-// const cookieParser = require('cookie-parser'); hola
-// const session = require('express-session');
 const oracledb = require('oracledb');
 const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const PORT = 3000;
 
+// Configuración de almacenamiento con multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'assets/img/fotosListas'); // Carpeta donde se guardarán las imágenes
+  },
+  filename: (req, file, cb) => {
+    const fieldname = file.fieldname;
+    const fieldMatch = fieldname.match(/(fotoPresidenteLista|fotoVicepresidenteLista)(\d+)/);
+    
+    if (fieldMatch) {
+      const [ , type, index ] = fieldMatch;      
+      const filename = `${fieldname}.png`;
+      cb(null, filename);
+    } else {
+      cb(new Error('Nombre de campo no reconocido'), false);
+    }
+  }
+});
+
+const upload = multer({ storage });
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(cookieParser()); // Usa cookie-parser
-// app.use(session({
-//   secret: 'supersecret', // Clave secreta para firmar la cookie
-//   resave: true,
-//   saveUninitialized: true
-// }));
 
 // Configurar Express para servir archivos estáticos desde el directorio raíz
-app.use(express.static(path.join(__dirname, '/')));
+//app.use(express.static(path.join(__dirname, '/')));
+app.use(express.static('.'));
 
 // Configuración de la base de datos
 const dbConfig = {
@@ -26,6 +41,13 @@ const dbConfig = {
   password: 'xXsCzXQjS39',
   connectString: 'localhost/XE'
 };
+
+// Ruta para manejar la carga de archivos
+app.post('/upload', upload.any(), (req, res) => {
+  // console.log('req.body upload:', req.body);
+  // console.log('req.files upload:', req.files);
+  res.json({ message: 'Subida OK' });
+});
 
 // Ruta para el inicio de sesión
 app.post('/login', async (req, res) => {
@@ -81,53 +103,140 @@ app.post('/guardar-candidatos', async (req, res) => {
 
   try {
     const connection = await oracledb.getConnection(dbConfig);
+
+    const insertListQuery = `INSERT INTO LISTAS (ID_LISTA, PERIODO_POSTULACION, ESTADO_LISTA, NOMBRE_LISTA) 
+                             VALUES (:id_lista, :periodo_postulacion, :estado_lista, :nombre_lista)`;
     
-    const insertQuery = `INSERT INTO CANDIDATOS (ID_US, PERIODO_POSTULACION, DIGNIDAD_CAND, ESTADO_CAND) 
-                         VALUES (:id_us, :periodo_postulacion, :dignidad_cand, :estado_cand)`;
+    const insertCandidatoQuery = `INSERT INTO CANDIDATOS (ID_US, ID_LISTA, PERIODO_POSTULACION, DIGNIDAD_CAND, ESTADO_CAND) 
+                                  VALUES (:id_us, :id_lista, :periodo_postulacion, :dignidad_cand, :estado_cand)`;
     
-    const NuloQuery = `INSERT INTO CANDIDATOS (ID_US, PERIODO_POSTULACION, DIGNIDAD_CAND, ESTADO_CAND) 
-                         VALUES ('nulo', :periodo_postulacion, 'nula', 1)`;
-    
+    const NuloQuery = `INSERT INTO LISTAS (ID_LISTA, PERIODO_POSTULACION, ESTADO_LISTA, NOMBRE_LISTA) 
+                       VALUES ('nulo', :periodo_postulacion, 1, 'nulo')`;
+
     const period = formData.periodo;
-    const estado = 1; // Asumimos que el estado es siempre 1 según tu descripción
+    const estadoLista = 1; // Estado para listas, asumiendo que siempre es 1
+    const estadoCandidato = 1; // Estado para candidatos, asumiendo que siempre es 1
 
     console.log("Voy a guardar Nulo");
     await connection.execute(NuloQuery, [period]);
     console.log("Guarde Nulo");
 
-    const dignidades = ['presidente', 'vicepresidente', 'secretario', 'subsecretario'];
+    for (const [index, lista] of formData.listas.entries()) {
+      const id_lista = `LISTA${index + 1}`;
+      const nombre_lista = lista.nombreLista;
 
-    for (const dignidad of dignidades) {
-      const candidatos = formData[dignidad];
-      for (const candidato of candidatos) {
-        // Separar el nombre y apellido del candidato
-        const [nombre, apellido] = candidato.split(', '); // Separar por coma
+      // Insertar en la tabla LISTAS
+      await connection.execute(insertListQuery, {
+        id_lista: id_lista,
+        periodo_postulacion: period,
+        estado_lista: estadoLista,
+        nombre_lista: nombre_lista
+      });
 
-        // Limpiar espacios alrededor de los nombres
-        const cleanNombre = nombre.trim();
-        const cleanApellido = apellido.trim();
-
-        // Consulta para obtener el ID_US del candidato
-        const result = await connection.execute(
-          `SELECT ID_US FROM USUARIOS WHERE NOMBRE_US = :nombre AND APELLIDO_US = :apellido`,
-          [cleanNombre, cleanApellido]
-        );
+      const dignidades = ['presidente', 'vicepresidente', 'secretario', 'tesorero', 'sindico'];
+      
+      for (const dignidad of dignidades) {
+        const candidato = lista[dignidad];
         
-        if (result.rows.length > 0) {
-          const id_us = result.rows[0][0];
-          // console.log(`Hola insertar final`);
-          // console.log(`nombre ${cleanNombre} y apellido ${cleanApellido}`);
-          // console.log(`El id es ${id_us}`);
-          // console.log(`El periodo es ${period}`);
-          // console.log(`El dignidad es ${dignidad}`);
-          // console.log(`El estado es ${estado}`);
-          // console.log(`${insertQuery}`);
-          // Insertar en la tabla CANDIDATOS
-          await connection.execute(insertQuery, [id_us, period, dignidad, estado]);
-          //console.log(`Se Inserto disque`);
-        } else {
-          console.log(`No se encontró el usuario con nombre ${cleanNombre} y apellido ${cleanApellido}`);
-          // Puedes manejar aquí lo que deseas hacer si no se encuentra el usuario
+        if (candidato) {
+          // Separar el nombre y apellido del candidato
+          const [nombre, apellido] = candidato.split(', '); // Separar por coma
+
+          // Limpiar espacios alrededor de los nombres
+          const cleanNombre = nombre.trim();
+          const cleanApellido = apellido.trim();
+
+          // Consulta para obtener el ID_US del candidato
+          const result = await connection.execute(
+            `SELECT ID_US FROM USUARIOS WHERE NOMBRE_US = :nombre AND APELLIDO_US = :apellido`,
+            [cleanNombre, cleanApellido]
+          );
+
+          if (result.rows.length > 0) {
+            const id_us = result.rows[0][0];
+
+            // Insertar en la tabla CANDIDATOS
+            await connection.execute(insertCandidatoQuery, {
+              id_us: id_us,
+              id_lista: id_lista,
+              periodo_postulacion: period,
+              dignidad_cand: dignidad,
+              estado_cand: estadoCandidato
+            });
+          } else {
+            console.log(`No se encontró el usuario con nombre ${cleanNombre} y apellido ${cleanApellido}`);
+            // Puedes manejar aquí lo que deseas hacer si no se encuentra el usuario
+          }
+        }
+      }
+
+      // Insertar vocales principales
+      for (let i = 0; i < 3; i++) {
+        const candidato = lista.vocalesPrincipales[i];
+        
+        if (candidato) {
+          // Separar el nombre y apellido del candidato
+          const [nombre, apellido] = candidato.split(', '); // Separar por coma
+
+          // Limpiar espacios alrededor de los nombres
+          const cleanNombre = nombre.trim();
+          const cleanApellido = apellido.trim();
+
+          // Consulta para obtener el ID_US del candidato
+          const result = await connection.execute(
+            `SELECT ID_US FROM USUARIOS WHERE NOMBRE_US = :nombre AND APELLIDO_US = :apellido`,
+            [cleanNombre, cleanApellido]
+          );
+
+          if (result.rows.length > 0) {
+            const id_us = result.rows[0][0];
+            // Insertar en la tabla CANDIDATOS
+            await connection.execute(insertCandidatoQuery, {
+              id_us: id_us,
+              id_lista: id_lista,
+              periodo_postulacion: period,
+              dignidad_cand: `vocalPrincipal${i + 1}`,
+              estado_cand: estadoCandidato
+            });
+          } else {
+            console.log(`No se encontró el usuario con nombre ${cleanNombre} y apellido ${cleanApellido}`);
+            // Puedes manejar aquí lo que deseas hacer si no se encuentra el usuario
+          }
+        }
+      }
+
+      // Insertar vocales suplentes
+      for (let i = 0; i < 3; i++) {
+        const candidato = lista.vocalesSuplentes[i];
+        
+        if (candidato) {
+          // Separar el nombre y apellido del candidato
+          const [nombre, apellido] = candidato.split(', '); // Separar por coma
+
+          // Limpiar espacios alrededor de los nombres
+          const cleanNombre = nombre.trim();
+          const cleanApellido = apellido.trim();
+
+          // Consulta para obtener el ID_US del candidato
+          const result = await connection.execute(
+            `SELECT ID_US FROM USUARIOS WHERE NOMBRE_US = :nombre AND APELLIDO_US = :apellido`,
+            [cleanNombre, cleanApellido]
+          );
+
+          if (result.rows.length > 0) {
+            const id_us = result.rows[0][0];
+            // Insertar en la tabla CANDIDATOS
+            await connection.execute(insertCandidatoQuery, {
+              id_us: id_us,
+              id_lista: id_lista,
+              periodo_postulacion: period,
+              dignidad_cand: `vocalSuplente${i + 1}`,
+              estado_cand: estadoCandidato
+            });
+          } else {
+            console.log(`No se encontró el usuario con nombre ${cleanNombre} y apellido ${cleanApellido}`);
+            // Puedes manejar aquí lo que deseas hacer si no se encuentra el usuario
+          }
         }
       }
     }
@@ -146,8 +255,8 @@ app.post('/guardar-candidatos', async (req, res) => {
 app.post('/guardar-votos', async (req, res) => {
   try {
     const { usuario, formData } = req.body;
-    //console.log('Usuario obtenido:', usuario);
-    //console.log('Datos del formulario recibidos:', formData);
+    // console.log('Usuario obtenido:', usuario);
+    // console.log('Datos del formulario recibidos:', formData);
 
     const connection = await oracledb.getConnection(dbConfig);
 
@@ -168,66 +277,22 @@ app.post('/guardar-votos', async (req, res) => {
       console.log('El votante ya existe en la tabla VOTANTES.');
     }
 
-    const insertQuery = `INSERT INTO VOTOS (VOT_ID_US, ID_US, PERIODO_POSTULACION, FECHA_VOTACION) 
-                         VALUES (:vot_id_us, :id_us, :periodo_postulacion, CURRENT_TIMESTAMP)`;
+    const insertQuery = `INSERT INTO VOTOS (ID_LISTA, PERIODO_POSTULACION, ID_US, FECHA_VOTACION)
+                         VALUES (:idLista, :periodoPostulacion, :usuario, CURRENT_TIMESTAMP)`;
     
-    const insertNuloQuery = `INSERT INTO VOTOS (VOT_ID_US, ID_US, PERIODO_POSTULACION, FECHA_VOTACION) 
-                         VALUES (:vot_id_us, 'nulo', :periodo_postulacion, CURRENT_TIMESTAMP)`;
+    const insertNuloQuery = `INSERT INTO VOTOS (ID_LISTA, PERIODO_POSTULACION, ID_US, FECHA_VOTACION)
+                         VALUES ('nulo', :periodo_postulacion, :usuario, CURRENT_TIMESTAMP)`;
     
-    const checkNuloQuery = `SELECT ID_US 
-                         FROM VOTOS 
-                         WHERE VOT_ID_US = :vot_id_us 
-                           AND ID_US = 'nulo' 
-                           AND PERIODO_POSTULACION = :periodo_postulacion`;
-
     const vot_id_us = usuario; // Variable Usuario de local storage
     const period = formData.periodo;
+    const id_lista = formData.idLista;
 
-    const dignidades = ['presidente', 'vicepresidente', 'secretario', 'subsecretario'];
-
-    for (const dignidad of dignidades) {
-      const candidatos = formData[dignidad];
-      for (const candidato of candidatos) {
-        if (candidato.toLowerCase() === 'nulo') {
-          // Insertar voto nulo
-          //console.log("Se considero voto nulo");
-          // Verificar si ya existe un voto nulo para el mismo periodo
-          const nuloResult = await connection.execute(checkNuloQuery, [vot_id_us, period]);
-          
-          //console.log(nuloResult);
-          if (nuloResult.rows.length == 0) {
-            // Insertar voto nulo si no existe previamente
-            console.log("Se insertara voto nulo");
-            await connection.execute(insertNuloQuery, [vot_id_us, period]);
-          } else {
-            console.log("Ya existe un voto nulo para el periodo especificado.");
-          }
-        } else {
-          // Separar el nombre y apellido del candidato
-          const [nombre, apellido] = candidato.split(', '); // Separar por coma
-
-          // Limpiar espacios alrededor de los nombres
-          const cleanNombre = nombre.trim();
-          const cleanApellido = apellido.trim();
-
-          // Consulta para obtener el ID_US del candidato
-          const result = await connection.execute(
-            `SELECT ID_US FROM USUARIOS WHERE NOMBRE_US = :nombre AND APELLIDO_US = :apellido`,
-            [cleanNombre, cleanApellido]
-          );
-          
-          if (result.rows.length > 0) {
-            const id_us = result.rows[0][0];
-            //console.log(`Votante: ${vot_id_us}, Candidato: ${id_us}, Período: ${period}`);
-            // Insertar en la tabla VOTOS
-            await connection.execute(insertQuery, [vot_id_us, id_us, period]);
-            //console.log(`Se insertó el voto para ${cleanNombre} ${cleanApellido}`);
-          } else {
-            console.log(`No se encontró el usuario con nombre ${cleanNombre} y apellido ${cleanApellido}`);
-            // Puedes manejar aquí lo que deseas hacer si no se encuentra el usuario
-          }
-        }
-      }
+    if (id_lista.toLowerCase() === 'nulo') {
+      console.log("Se insertara voto nulo");
+      await connection.execute(insertNuloQuery, [period, vot_id_us]);
+    } else {
+      //console.log(`Votante: ${vot_id_us}, Candidato: ${id_us}, Período: ${period}`);
+      await connection.execute(insertQuery, [id_lista, period, vot_id_us]);
     }
 
     // Confirmar la transacción
@@ -252,54 +317,35 @@ app.get('/obtener-candidatos', async (req, res) => {
     // Establecer conexión a la base de datos
     //console.log('Estableciendo conexión a Oracle...');
     const connection = await oracledb.getConnection(dbConfig);
-    //console.log('Conexión establecida con éxito.');
+    console.log('Conexión establecida con éxito.');
 
-    // Consulta SQL para obtener candidatos por período con nombres completos
-    const query = `
-      SELECT u.NOMBRE_US || ', ' || u.APELLIDO_US AS NOMBRE_COMPLETO, c.DIGNIDAD_CAND
-      FROM CANDIDATOS c
-      JOIN USUARIOS u ON c.ID_US = u.ID_US
-      WHERE c.PERIODO_POSTULACION = :periodo AND u.ID_US <> 'nulo'
-    `;
-    //console.log('Ejecutando consulta SQL...');
-    
-    // Ejecutar la consulta con el período proporcionado
-    const result = await connection.execute(query, { periodo });
-    //console.log('Consulta SQL ejecutada con éxito.');
+    const result = await connection.execute(
+      `SELECT 
+         c.ID_US, 
+         u.NOMBRE_US || ' ' || u.APELLIDO_US AS NOMBRE_COMPLETO,
+         c.ID_LISTA, 
+         c.PERIODO_POSTULACION, 
+         c.DIGNIDAD_CAND, 
+         c.ESTADO_CAND,
+         l.NOMBRE_LISTA
+       FROM CANDIDATOS c
+       JOIN LISTAS l ON c.ID_LISTA = l.ID_LISTA AND c.PERIODO_POSTULACION = l.PERIODO_POSTULACION
+       JOIN USUARIOS u ON c.ID_US = u.ID_US
+       WHERE c.PERIODO_POSTULACION = :periodo`,
+      [periodo]
+    );
+    // console.log('Consulta SQL ejecutada con éxito.');
+    // console.log('Resultados de la consulta:', result);
 
-    // Imprimir los resultados de la consulta
-    //console.log('Resultados de la consulta:', result);
-
-    // Transformar resultados a formato JSON
-    const candidatos = {
-      presidente: [],
-      vicepresidente: [],
-      secretario: [],
-      subsecretario: []
-    };
-
-    // Organizar los resultados por título (DIGNIDAD_CAND)
-    result.rows.forEach(row => {
-      const idUs = row[0];
-      const dignidad = row[1];
-
-      switch (dignidad) {
-        case 'presidente':
-          candidatos.presidente.push({ ID_US: idUs });
-          break;
-        case 'vicepresidente':
-          candidatos.vicepresidente.push({ ID_US: idUs });
-          break;
-        case 'secretario':
-          candidatos.secretario.push({ ID_US: idUs });
-          break;
-        case 'subsecretario':
-          candidatos.subsecretario.push({ ID_US: idUs });
-          break;
-        default:
-          break;
-      }
-    });
+    const candidatos = result.rows.map(row => ({
+      idUs: row[0],
+      nombreCompleto: row[1],
+      idLista: row[2],
+      periodoPostulacion: row[3],
+      dignidadCand: row[4],
+      estadoCand: row[5],
+      nombreLista: row[6]
+    }));
 
     // Cerrar la conexión después de obtener los resultados
     await connection.close();
@@ -307,7 +353,7 @@ app.get('/obtener-candidatos', async (req, res) => {
 
     // Enviar respuesta con los candidatos encontrados
     res.status(200).json(candidatos);
-    //console.log('Respuesta enviada:', candidatos);
+    // console.log('Respuesta enviada:', candidatos);
   } catch (error) {
     console.error('Error al obtener candidatos:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -325,7 +371,7 @@ app.get('/verificar-voto', async (req, res) => {
     const query = `
       SELECT COUNT(*) AS VOTO_REALIZADO
       FROM VOTOS
-      WHERE VOT_ID_US = :usuario
+      WHERE ID_US = :usuario
         AND PERIODO_POSTULACION = :periodo
     `;
 
@@ -392,7 +438,7 @@ app.get('/api/resultados', async (req, res) => {
 
     // Consulta para obtener el número de votantes únicos
     const queryNumVotantesUnicos = `
-      SELECT COUNT(DISTINCT v.VOT_ID_US) AS NUMERO_VOTANTES_UNICOS
+      SELECT COUNT(DISTINCT v.ID_US) AS NUMERO_VOTANTES_UNICOS
       FROM VOTOS v
       WHERE v.PERIODO_POSTULACION = :periodo
     `;
@@ -402,41 +448,22 @@ app.get('/api/resultados', async (req, res) => {
     console.log(`Número de votantes únicos para el período ${periodo}: ${numeroVotantesUnicos}`);
 
     const query = `
-      SELECT u.NOMBRE_US || ', ' || u.APELLIDO_US AS NOMBRE_COMPLETO, c.DIGNIDAD_CAND, COUNT(v.VOT_ID_US) AS VOTOS
+      SELECT l.NOMBRE_LISTA, COUNT(v.ID_US) AS VOTOS
       FROM VOTOS v
-      JOIN USUARIOS u ON v.ID_US = u.ID_US
-      JOIN CANDIDATOS c ON u.ID_US = c.ID_US AND v.PERIODO_POSTULACION = c.PERIODO_POSTULACION
+      JOIN LISTAS l ON v.ID_LISTA = l.ID_LISTA AND v.PERIODO_POSTULACION = l.PERIODO_POSTULACION
       WHERE v.PERIODO_POSTULACION = :periodo
-      GROUP BY u.NOMBRE_US || ', ' || u.APELLIDO_US, c.DIGNIDAD_CAND
+      GROUP BY l.NOMBRE_LISTA
+      ORDER BY VOTOS DESC
     `;
 
     const result = await connection.execute(query, [periodo]);
     await connection.close();
 
-    const resultados = {
-      presidente: [],
-      vicepresidente: [],
-      secretario: [],
-      subsecretario: []
-    };
+    const resultados = [];
 
     result.rows.forEach(row => {
-      const [nombre, dignidad, votos] = row;
-      if (!resultados[dignidad]) {
-        resultados[dignidad] = [];
-      }
-      resultados[dignidad].push({ nombre, votos });
-    });
-
-    Object.keys(resultados).forEach(dignidad => {
-      const sumaVotos = resultados[dignidad].reduce((total, candidato) => total + candidato.votos, 0);
-      console.log(`${dignidad}: ${sumaVotos}`);
-      if (sumaVotos > 0) {
-        resultados[dignidad].push({ nombre: 'Nulo', votos: numeroVotantesUnicos - sumaVotos });
-      }
-      else {
-        resultados[dignidad].push({ nombre: 'Nulo', votos: 0 });
-      }
+      const [nombre, votos] = row;
+      resultados.push({ nombre, votos });
     });
 
     res.json(resultados);
@@ -446,6 +473,102 @@ app.get('/api/resultados', async (req, res) => {
   }
 });
 
+// Ruta para obtener todos los usuarios activos
+app.get('/api/usuarios-crud', async (req, res) => {
+  try {
+    const connection = await oracledb.getConnection(dbConfig);
+    const result = await connection.execute(`SELECT ID_US, ID_ROL, NOMBRE_US, APELLIDO_US, DEPARTAMENTO_US, CONTRASENA_US FROM USUARIOS WHERE ESTADO_US = 1`);
+    await connection.close();
+    res.json(result.rows.map(row => ({
+      ID_US: row[0],
+      ID_ROL: row[1],
+      NOMBRE_US: row[2],
+      APELLIDO_US: row[3],
+      DEPARTAMENTO_US: row[4],
+      CONTRASENA_US: row[5]
+    })));
+  } catch (err) {
+    console.error('Error al obtener los usuarios:', err);
+    res.status(500).json({ error: 'Error al obtener los usuarios' });
+  }
+});
+
+// Ruta para obtener un usuario por ID
+app.get('/api/usuarios-crud/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const connection = await oracledb.getConnection(dbConfig);
+    const result = await connection.execute(`SELECT ID_US, ID_ROL, NOMBRE_US, APELLIDO_US, DEPARTAMENTO_US, CONTRASENA_US FROM USUARIOS WHERE ID_US = :id AND ESTADO_US = 1`, [id]);
+    await connection.close();
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    const row = result.rows[0];
+    res.json({
+      ID_US: row[0],
+      ID_ROL: row[1],
+      NOMBRE_US: row[2],
+      APELLIDO_US: row[3],
+      DEPARTAMENTO_US: row[4],
+      CONTRASENA_US: row[5]
+    });
+  } catch (err) {
+    console.error('Error al obtener el usuario:', err);
+    res.status(500).json({ error: 'Error al obtener el usuario' });
+  }
+});
+
+// Ruta para crear un nuevo usuario
+app.post('/api/usuarios-crud', async (req, res) => {
+  const { idUs, idRol, nombreUs, apellidoUs, departamentoUs, contrasenaUs } = req.body;
+  try {
+    const connection = await oracledb.getConnection(dbConfig);
+    await connection.execute(
+      `INSERT INTO USUARIOS (ID_US, ID_ROL, NOMBRE_US, APELLIDO_US, DEPARTAMENTO_US, CONTRASENA_US, ESTADO_US) VALUES (:idUs, :idRol, :nombreUs, :apellidoUs, :departamentoUs, :contrasenaUs, 1)`,
+      [idUs, idRol, nombreUs, apellidoUs, departamentoUs, contrasenaUs]
+    );
+    await connection.commit();
+    await connection.close();
+    res.json({ message: 'Usuario creado exitosamente' });
+  } catch (err) {
+    console.error('Error al crear el usuario:', err);
+    res.status(500).json({ error: 'Error al crear el usuario' });
+  }
+});
+
+// Ruta para actualizar un usuario existente
+app.put('/api/usuarios-crud/:id', async (req, res) => {
+  const id = req.params.id;
+  const { idRol, nombreUs, apellidoUs, departamentoUs, contrasenaUs } = req.body;
+  try {
+    const connection = await oracledb.getConnection(dbConfig);
+    await connection.execute(
+      `UPDATE USUARIOS SET ID_ROL = :idRol, NOMBRE_US = :nombreUs, APELLIDO_US = :apellidoUs, DEPARTAMENTO_US = :departamentoUs, CONTRASENA_US = :contrasenaUs WHERE ID_US = :id AND ESTADO_US = 1`,
+      [idRol, nombreUs, apellidoUs, departamentoUs, contrasenaUs, id]
+    );
+    await connection.commit();
+    await connection.close();
+    res.json({ message: 'Usuario actualizado exitosamente' });
+  } catch (err) {
+    console.error('Error al actualizar el usuario:', err);
+    res.status(500).json({ error: 'Error al actualizar el usuario' });
+  }
+});
+
+// Ruta para cambiar el estado de un usuario a 0 (eliminar)
+app.delete('/api/usuarios-crud/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const connection = await oracledb.getConnection(dbConfig);
+    await connection.execute(`UPDATE USUARIOS SET ESTADO_US = 0 WHERE ID_US = :id`, [id]);
+    await connection.commit();
+    await connection.close();
+    res.json({ message: 'Usuario eliminado exitosamente' });
+  } catch (err) {
+    console.error('Error al eliminar el usuario:', err);
+    res.status(500).json({ error: 'Error al eliminar el usuario' });
+  }
+});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

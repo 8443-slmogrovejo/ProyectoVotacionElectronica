@@ -11,8 +11,7 @@
   <meta http-equiv="Expires" content="0" />
 
   <!-- Favicons -->
-  <link href="../assets/img/favicon.png" rel="icon">
-  <link href="../assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="../assets/img/logo.png" rel="icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -72,42 +71,61 @@
       event.preventDefault();
 
       const periodo = document.getElementById('periodo').value;
-      const numPresidente = parseInt(document.getElementById('numPresidente').value);
-      const numVicepresidente = parseInt(document.getElementById('numVicepresidente').value);
-      const numSecretario = parseInt(document.getElementById('numSecretario').value);
-      const numSubsecretario = parseInt(document.getElementById('numSubsecretario').value);
+      const numListas = parseInt(document.getElementById('numListas').value);
+      console.log("initial submit");
 
       let secondFormHtml = `
-      <p style="color: rgba(255, 255, 255, 0.8); text-align: center; font-size: 12px;">En este apartado se ingresarán cada uno de los candidatos postulados, separados por dignidades para su correcta selección.</p>
-      <h4 style="color: aliceblue;">Periodo ${periodo}</h4><form id="secondForm">
+        <p style="color: rgba(255, 255, 255, 0.8); text-align: center; font-size: 12px;">En este apartado se ingresarán cada uno de los candidatos postulados, separados por dignidades para su correcta selección.</p>
+        <h4 style="color: aliceblue;">Periodo ${periodo}</h4><form id="secondForm">
         <br><div style="background-color: white; width: 760px; margin-left: -20px;">
-            <div style="background-color: rgba(0, 0, 0, 0.1); width: 760px; height: 15px;"></div>
-          </div>`;
+          <div style="background-color: rgba(0, 0, 0, 0.1); width: 760px; height: 15px;"></div>
+        </div>`;
 
-      function generateFields(title, num, lista) {
-        if (num > 0) {
-          secondFormHtml += `<h4 style="color: var(--accent-color); padding-top: 15px;">${title}s</h4><hr>`;
-          for (let i = 1; i <= num; i++) {
-            secondFormHtml +=
-              `<div class="form-group row my-2">
-                <label class="col-sm-4 col-form-label">${title} ${i}</label>
-                <div class="col-sm-8">
-                  <select name="${title.toLowerCase()}${i}" class="form-control user-select" required>
-                    <option value="" disabled selected>Seleccione un ${title.toLowerCase()}</option>
-                  </select>
-                </div>
-              </div>`;
-          }
-          secondFormHtml += `<br><div style="background-color: white; width: 760px; margin-left: -20px;">
-            <div style="background-color: rgba(0, 0, 0, 0.1); width: 760px; height: 15px;"></div>
-          </div>`;
+      for (let lista = 1; lista <= numListas; lista++) {
+        secondFormHtml += `<h4 style="color: var(--accent-color); padding-top: 15px;">Lista ${lista}</h4><hr>`;
+        console.log("initial lista");
+
+        const dignidades = ['Presidente', 'Vicepresidente', 'Secretario', 'Tesorero', 'Síndico'];
+        dignidades.forEach(dignidad => {
+          secondFormHtml += `
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label">${dignidad}</label>
+              <div class="col-sm-8">
+                <select name="${dignidad.toLowerCase()}${lista}" class="form-control user-select" required>
+                  <option value="" disabled selected>Seleccione un ${dignidad.toLowerCase()}</option>
+                </select>
+              </div>
+            </div>`;
+        });
+
+        for (let i = 1; i <= 3; i++) {
+          secondFormHtml += `
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label">Vocal Principal ${i}</label>
+              <div class="col-sm-8">
+                <select name="vocalPrincipal${i}Lista${lista}" class="form-control user-select" required>
+                  <option value="" disabled selected>Seleccione un vocal principal</option>
+                </select>
+              </div>
+            </div>`;
         }
-      }
 
-      generateFields('Presidente', numPresidente, 0);
-      generateFields('Vicepresidente', numVicepresidente, 0);
-      generateFields('Secretario', numSecretario, 0);
-      generateFields('Subsecretario', numSubsecretario, 1);
+        for (let i = 1; i <= 3; i++) {
+          secondFormHtml += `
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label">Vocal Suplente ${i}</label>
+              <div class="col-sm-8">
+                <select name="vocalSuplente${i}Lista${lista}" class="form-control user-select" required>
+                  <option value="" disabled selected>Seleccione un vocal suplente</option>
+                </select>
+              </div>
+            </div>`;
+        }
+
+        secondFormHtml += `<br><div style="background-color: white; width: 760px; margin-left: -20px;">
+          <div style="background-color: rgba(0, 0, 0, 0.1); width: 760px; height: 15px;"></div>
+        </div>`;
+      }
 
       secondFormHtml += `<br>
         <div class="form-group row my-2">
@@ -123,27 +141,27 @@
       document.getElementById('initialForm').style.display = 'none';
       document.getElementById('secondFormContainer').style.display = 'block';
 
-      
       document.getElementById('backButton').addEventListener('click', function() {
         document.getElementById('secondFormContainer').style.display = 'none';
         document.getElementById('initialForm').style.display = 'block';
       });
 
-      document.getElementById('secondForm').addEventListener('submit', function(event) {
-        event.preventDefault();
 
-        const formData = new FormData(this);
-        formData.append('periodo', periodo);
+      // document.getElementById('secondForm').addEventListener('submit', function(event) {
+      //   event.preventDefault();
 
-        const formDataObj = {};
-        formData.forEach((value, key) => {
-          formDataObj[key] = value;
-        });
+      //   const formData = new FormData(this);
+      //   formData.append('periodo', periodo);
 
-        localStorage.setItem('formData', JSON.stringify(formDataObj));
+      //   const formDataObj = {};
+      //   formData.forEach((value, key) => {
+      //     formDataObj[key] = value;
+      //   });
 
-        window.location.href = '/html/votacion.html';
-      });
+      //   localStorage.setItem('formData', JSON.stringify(formDataObj));
+
+      //   window.location.href = '/html/votacion.html';
+      // });
 
       // Obtener usuarios y llenar los campos de selección nuevamente
       fetch('/api/usuarios')
@@ -178,6 +196,7 @@
           <ul>
             <li><a href="#about">Configuración</a></li>
             <li><a href="resultados.html">Resultados</a></li>
+            <li><a href="usuarios.html">Usuarios ADUFA</a></li>
             <li class="dropdown"><a href="#" id="username-display"> NOMBRE USUARIO <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
                 <li><a href="#" id="logout-button">Cerrar Sesión</a></li>
@@ -219,31 +238,14 @@
                     <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
                   </div>
                   <div class="form-group row my-2">
-                    <label for="presidente" class="col-sm-4 col-form-label" style="color: var(--accent-color);font-size: 20px;">Dignidades</label>
+                    <label for="listas" class="col-sm-4 col-form-label" style="color: var(--accent-color);font-size: 20px;">Listas</label>
                     <hr>
-                    <label for="presidente" class="col-sm-4 col-form-label">Presidente</label>
+                    <label for="listas" class="col-sm-4 col-form-label">Ingrese Número de Listas</label>
                     <div class="col-sm-8">
-                      <input type="number" class="form-control" id="numPresidente" min="0" placeholder="Cantidad" required="1">
+                      <input type="number" class="form-control" id="numListas" min="0" placeholder="Cantidad" required="1">
                     </div>
                   </div>
-                  <div class="form-group row my-2">
-                    <label for="vicepresidente" class="col-sm-4 col-form-label">Vicepresidente</label>
-                    <div class="col-sm-8">
-                      <input type="number" class="form-control" id="numVicepresidente" min="0" placeholder="Cantidad" required="1">
-                    </div>
-                  </div>
-                  <div class="form-group row my-2">
-                    <label for="secretario" class="col-sm-4 col-form-label">Secretario</label>
-                    <div class="col-sm-8">
-                      <input type="number" class="form-control" id="numSecretario" min="0" placeholder="Cantidad" required="1">
-                    </div>
-                  </div>
-                  <div class="form-group row my-2">
-                    <label for="subsecretario" class="col-sm-4 col-form-label">Subsecretario</label>
-                    <div class="col-sm-8">
-                      <input type="number" class="form-control" id="numSubsecretario" min="0" placeholder="Cantidad" required="1">
-                    </div>
-                  </div><br>
+                  <br>
                   <div class="form-group row my-2">
                     <div class="col-sm-12 text-center">
                       <button type="submit" class="read-more">Enviar</button>
@@ -291,45 +293,80 @@
   <script>
     document.getElementById('initialForm').addEventListener('submit', function(event) {
       event.preventDefault();
-  
+
       const periodo = document.getElementById('periodo').value;
-      const numPresidente = parseInt(document.getElementById('numPresidente').value);
-      const numVicepresidente = parseInt(document.getElementById('numVicepresidente').value);
-      const numSecretario = parseInt(document.getElementById('numSecretario').value);
-      const numSubsecretario = parseInt(document.getElementById('numSubsecretario').value);
-  
+      const numListas = parseInt(document.getElementById('numListas').value);
+
       let secondFormHtml = `
-      <p style="text-align: center; font-size: 12px;">En este apartado se ingresarán cada uno de los candidatos postulados, separados por dignidades para su correcta selección.</p>
-      <h4>Periodo ${periodo}</h4><form id="secondForm">
-        <br><div style="background-color: white; width: 105%; margin-left: -20px;">
-            <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
-          </div>`;
-  
-      function generateFields(title, num, lista) {
-        if (num > 0) {
-          secondFormHtml += `<h4 style="color: var(--accent-color); padding-top: 15px;">${title}s</h4><hr>`;
-          for (let i = 1; i <= num; i++) {
-            secondFormHtml +=
-              `<div class="form-group row my-2">
-                <label class="col-sm-4 col-form-label">${title} ${i}</label>
-                <div class="col-sm-8">
-                  <select name="${title.toLowerCase()}${i}" class="form-control user-select" required>
-                    <option value="" disabled selected>Seleccione un ${title.toLowerCase()}</option>
-                  </select>
-                </div>
-                </div>`;
-          }
-          secondFormHtml += `<br><div style="background-color: white; width: 105%; margin-left: -20px;">
-            <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
+        <p style="text-align: center; font-size: 12px;">En este apartado se ingresarán cada uno de los candidatos postulados, separados por dignidades para su correcta selección.</p>
+        <h4>Periodo ${periodo}</h4><form id="secondForm" action="/uploadProvisionales" method="POST" enctype="multipart/form-data">
+          <br><div style="background-color: white; width: 105%; margin-left: -20px;">
+              <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
+            </div>`;
+
+      for (let lista = 1; lista <= numListas; lista++) {
+        secondFormHtml += `<h4 style="color: var(--accent-color); padding-top: 15px;">Lista ${lista}</h4><hr>
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label"> Nombre de la lista</label>
+              <div class="col-sm-8">
+                <input type="text" id="nombreLista${lista}" name="nombreLista${lista}" class="form-control" placeholder="Ingrese el nombre de la lista" required>
+              </div>
+            </div>
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label"> Foto del Presidente</label>
+              <div class="col-sm-8">
+                <input type="file" id="fotoPresidenteLista${lista}periodo${periodo}" name="fotoPresidenteLista${lista}periodo${periodo}" class="form-control-file" accept="image/*" required>
+              </div>
+            </div>
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label"> Foto del Vicepresidente</label>
+              <div class="col-sm-8">
+                <input type="file" id="fotoVicepresidenteLista${lista}periodo${periodo}" name="fotoVicepresidenteLista${lista}periodo${periodo}" class="form-control-file" accept="image/*" required>
+              </div>
+            </div>`;
+        
+        const dignidades = ['Presidente', 'Vicepresidente', 'Secretario', 'Tesorero', 'Sindico'];
+        dignidades.forEach(dignidad => {
+          secondFormHtml += `
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label">${dignidad}</label>
+              <div class="col-sm-8">
+                <select id="${dignidad.toLowerCase()}Lista${lista}" name="${dignidad.toLowerCase()}${lista}" class="form-control user-select" required>
+                  <option value="" disabled selected>Seleccione un ${dignidad.toLowerCase()}</option>
+                </select>
+              </div>
+            </div>`;
+        });
+
+        for (let i = 1; i <= 3; i++) {
+          secondFormHtml += `
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label">Vocal Principal ${i}</label>
+              <div class="col-sm-8">
+                <select id="vocalPrincipal${i}Lista${lista}" name="vocalPrincipal${i}Lista${lista}" class="form-control user-select" required>
+                  <option value="" disabled selected>Seleccione un vocal principal</option>
+                </select>
+              </div>
             </div>`;
         }
+
+        for (let i = 1; i <= 3; i++) {
+          secondFormHtml += `
+            <div class="form-group row my-2">
+              <label class="col-sm-4 col-form-label">Vocal Suplente ${i}</label>
+              <div class="col-sm-8">
+                <select id="vocalSuplente${i}Lista${lista}" name="vocalSuplente${i}Lista${lista}" class="form-control user-select" required>
+                  <option value="" disabled selected>Seleccione un vocal suplente</option>
+                </select>
+              </div>
+            </div>`;
+        }
+
+        secondFormHtml += `<br><div style="background-color: white; width: 105%; margin-left: -20px;">
+            <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
+            </div>`;
       }
 
-      generateFields('Presidente', numPresidente, 0);
-      generateFields('Vicepresidente', numVicepresidente, 0);
-      generateFields('Secretario', numSecretario, 0);
-      generateFields('Subsecretario', numSubsecretario, 1);
-  
       secondFormHtml += `<br>
         <div class="form-group row my-2">
           <div class="col-sm-12 text-center">
@@ -338,9 +375,9 @@
           </div>
         </div>
       </form>`;
-  
+
       document.getElementById('secondFormContainer').innerHTML = secondFormHtml;
-  
+
       document.getElementById('initialForm').style.display = 'none';
       document.getElementById('secondFormContainer').style.display = 'block';
 
@@ -367,43 +404,82 @@
       document.getElementById('secondForm').addEventListener('submit', function(event) {
         event.preventDefault();
 
-        // Obtener valores de los campos de texto
-        const periodo = document.getElementById('periodo').value;
-        const numPresidente = parseInt(document.getElementById('numPresidente').value);
-        const numVicepresidente = parseInt(document.getElementById('numVicepresidente').value);
-        const numSecretario = parseInt(document.getElementById('numSecretario').value);
-        const numSubsecretario = parseInt(document.getElementById('numSubsecretario').value);
+        const listas = [];
+        
+        for (let lista = 1; lista <= numListas; lista++) {
+          const listaData = {
+            nombreLista: document.getElementById(`nombreLista${lista}`).value,
+            presidente: document.getElementById(`presidenteLista${lista}`).value,
+            vicepresidente: document.getElementById(`vicepresidenteLista${lista}`).value,
+            secretario: document.getElementById(`secretarioLista${lista}`).value,
+            tesorero: document.getElementById(`tesoreroLista${lista}`).value,
+            sindico: document.getElementById(`sindicoLista${lista}`).value,
+            vocalesPrincipales: [],
+            vocalesSuplentes: []
+          };
 
-        // Crear objetos para cada dignidad
-        const presidentes = [];
-        const vicepresidentes = [];
-        const secretarios = [];
-        const subsecretarios = [];
+          for (let i = 1; i <= 3; i++) {
+            listaData.vocalesPrincipales.push(document.getElementById(`vocalPrincipal${i}Lista${lista}`).value);
+          }
 
-        function obtenerNombres(title, num, lista) {
-            for (let i = 1; i <= num; i++) {
-                lista.push(document.getElementsByName(`${title.toLowerCase()}${i}`)[0].value);
-            }
+          for (let i = 1; i <= 3; i++) {
+            listaData.vocalesSuplentes.push(document.getElementById(`vocalSuplente${i}Lista${lista}`).value);
+          }
+
+          listas.push(listaData);
         }
 
-        obtenerNombres('Presidente', numPresidente, presidentes);
-        obtenerNombres('Vicepresidente', numVicepresidente, vicepresidentes);
-        obtenerNombres('Secretario', numSecretario, secretarios);
-        obtenerNombres('Subsecretario', numSubsecretario, subsecretarios);
-
-        // Construir el objeto final con todas las dignidades
         const datos = {
-            periodo: periodo,
-            presidente: presidentes,
-            vicepresidente: vicepresidentes,
-            secretario: secretarios,
-            subsecretario: subsecretarios
+          periodo: periodo,
+          listas: listas
         };
+
+        // Imprimir formData en la consola
+        console.log('formData:', datos);
 
         localStorage.setItem('formData', JSON.stringify(datos));
 
+        // Llamar a la función para guardar las imágenes
+        saveImages(periodo);
+
         window.location.href = 'votacion.html';
       });
+
+      function saveImages(periodo) {
+        // const form = document.getElementById('secondForm');
+        // const formFotos = new FormData(form);
+
+        const form = document.getElementById('secondForm');
+        const formFotos = new FormData();
+
+        // Obtener todos los campos de tipo "file" del formulario
+        const fileInputs = form.querySelectorAll('input[type="file"]');
+
+        // Agregar solo los archivos de imagen a formFotos
+        fileInputs.forEach(input => {
+            if (input.files.length > 0) {
+                formFotos.append(input.name, input.files[0]);
+            }
+        });
+
+        // Imprimir el contenido de formFotos en la consola
+        for (const pair of formFotos.entries()) {
+            console.log(`${pair[0]}: ${pair[1].name}`);
+        }
+
+        fetch('/upload', {
+          method: 'POST',
+          body: formFotos
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert('Imágenes guardadas exitosamente.');
+        })
+        .catch(error => {
+          // console.error('Error al guardar las imágenes:', error);  // Imprime el error en la consola
+          // alert('Error al guardar las imágenes. Ver consola para detalles.');
+        });
+      }
 
       // Obtener usuarios y llenar los campos de selección nuevamente
       fetch('/api/usuarios')

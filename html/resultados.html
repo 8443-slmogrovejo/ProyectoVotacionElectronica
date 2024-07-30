@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resultados - Votaciones ADUFA</title>
+  <!-- Favicons -->
+  <link href="../assets/img/logo.png" rel="icon">
   <link href="../assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="../assets/css/main.css" rel="stylesheet">
 </head>
@@ -17,7 +19,8 @@
         <nav id="navmenu" class="navmenu">
           <ul>
             <li><a href="configuracion.html">Configuración</a></li>
-            <li><a href="resultados.html">Resultados</a></li>
+            <li><a href="#about">Resultados</a></li>
+            <li><a href="usuarios.html">Usuarios ADUFA</a></li>
             <li class="dropdown"><a href="#" id="username-display"> NOMBRE USUARIO <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
                 <li><a href="#" id="logout-button">Cerrar Sesión</a></li>
@@ -123,22 +126,29 @@
       });
 
       function generateResultsHtml(data) {
-        let html = '';
-        const dignidades = ['presidente', 'vicepresidente', 'secretario', 'subsecretario'];
-        dignidades.forEach(dignidad => {
-            if (data[dignidad] && data[dignidad].length > 0) {
-            html += `<h5>${dignidad.charAt(0).toUpperCase() + dignidad.slice(1)}</h5>`;
-            html += '<table class="table table-bordered table-striped table-hover"><thead class="table-dark"><tr><th>Candidato</th><th>Votos</th></tr></thead><tbody>';
-            data[dignidad].forEach(candidato => {
-                html += `<tr><td>${candidato.nombre}</td><td>${candidato.votos}</td></tr>`;
-            });
-            html += '</tbody></table>';
-            const ganador = data[dignidad].reduce((max, candidato) => (candidato.votos > max.votos ? candidato : max), data[dignidad][0]);
-            html += `<p>Ganador: ${ganador.nombre} con ${ganador.votos} votos</p>`;
-            }
+        // Separar la lista "nulo"
+        const listasNormales = data.filter(lista => lista.nombre.toLowerCase() !== 'nulo');
+        const listaNulo = data.find(lista => lista.nombre.toLowerCase() === 'nulo');
+
+        // Crear HTML para listas normales
+        let html = '<table class="table table-bordered table-striped table-hover"><thead class="table-dark"><tr><th>Lista</th><th>Votos</th></tr></thead><tbody>';
+        listasNormales.forEach(lista => {
+          html += `<tr><td>${lista.nombre}</td><td>${lista.votos}</td></tr>`;
         });
-        return html;
+
+        // Agregar la lista "nulo" al final
+        if (listaNulo) {
+          html += `<tr><td>NULO</td><td>${listaNulo.votos}</td></tr>`;
         }
+        
+        html += '</tbody></table>';
+
+        // Determinar el ganador
+        const ganador = listasNormales.reduce((max, lista) => (lista.votos > max.votos ? lista : max), listasNormales[0]);
+        html += `<p>Ganador: ${ganador.nombre} con ${ganador.votos} votos</p>`;
+
+        return html;
+      }
 
     });
 

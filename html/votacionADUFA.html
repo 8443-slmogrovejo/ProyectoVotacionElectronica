@@ -9,8 +9,7 @@
   <meta content="" name="keywords">
 
   <!-- Favicons -->
-  <link href="../assets/img/favicon.png" rel="icon">
-  <link href="../assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="../assets/img/logo.png" rel="icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -164,46 +163,117 @@
       try {
         const response = await fetch(`/obtener-candidatos?periodo=${periodo}`);
         const data = await response.json();
+        const listas = {};
+
+        data.forEach(candidate => {
+            if (!listas[candidate.idLista]) {
+                listas[candidate.idLista] = {
+                    nombreLista: candidate.nombreLista,
+                    presidente: '',
+                    vicepresidente: '',
+                    secretario: '',
+                    tesorero: '',
+                    sindico: '',
+                    vocalesPrincipales: ['', '', ''],
+                    vocalesSuplentes: ['', '', '']
+                };
+            }
+
+            switch (candidate.dignidadCand) {
+                case 'presidente':
+                    listas[candidate.idLista].presidente = candidate.nombreCompleto;
+                    break;
+                case 'vicepresidente':
+                    listas[candidate.idLista].vicepresidente = candidate.nombreCompleto;
+                    break;
+                case 'secretario':
+                    listas[candidate.idLista].secretario = candidate.nombreCompleto;
+                    break;
+                case 'tesorero':
+                    listas[candidate.idLista].tesorero = candidate.nombreCompleto;
+                    break;
+                case 'sindico':
+                    listas[candidate.idLista].sindico = candidate.nombreCompleto;
+                    break;
+                case 'vocalPrincipal1':
+                    listas[candidate.idLista].vocalesPrincipales[0] = candidate.nombreCompleto;
+                    break;
+                case 'vocalPrincipal2':
+                    listas[candidate.idLista].vocalesPrincipales[1] = candidate.nombreCompleto;
+                    break;
+                case 'vocalPrincipal3':
+                    listas[candidate.idLista].vocalesPrincipales[2] = candidate.nombreCompleto;
+                    break;
+                case 'vocalSuplente1':
+                    listas[candidate.idLista].vocalesSuplentes[0] = candidate.nombreCompleto;
+                    break;
+                case 'vocalSuplente2':
+                    listas[candidate.idLista].vocalesSuplentes[1] = candidate.nombreCompleto;
+                    break;
+                case 'vocalSuplente3':
+                    listas[candidate.idLista].vocalesSuplentes[2] = candidate.nombreCompleto;
+                    break;
+            }
+        });
 
         // Renderizar los datos obtenidos en el formulario
         const checkboxesContainer = document.getElementById('checkboxesContainer');
-        checkboxesContainer.innerHTML += `<h4 style:"font-weight: bold;">Periodo ${periodo}</h4><form id="secondForm">
-        <br><div style="background-color: white; width: 105%; margin-left: -20px;">
-              <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
-            </div>`;
+        checkboxesContainer.innerHTML += `<br><h3 style:"font-weight: bold;">Periodo ${periodo}</h3>
+        <form id="secondForm">
+          <br>
+          <hr>
+          <br>
+          <div class="radio-tile-group">
+            <div class="form-check-inline col-md-1"></div>
+            <div class="form-check-inline col-md-10">
+              <input class="radio-button-nulo" type="radio" id="nulo" name="lista" value="nulo">
+              <label class="btn-nulo" for="nulo"> VOTAR NULO</label>
+            </div>
+            <div class="form-check-inline col-md-1"></div>`;
 
-        // Función para generar campos de radio por título
-        function generateRadioFields(title, nombres) {
-          if (nombres.length === 0) {
-            return '';
-          }
-          let radioFieldsHtml = `<h4 style="color: var(--accent-color); padding-top: 15px; font-weight: bold;">${title}</h4><hr>`;
-          nombres.forEach((nombre, index) => {
-            radioFieldsHtml += `
-              <div>
-                <input type="radio" id="${title.toLowerCase()}${index + 1}" name="${title.toLowerCase()}" value="${nombre.ID_US}">
-                <label for="${title.toLowerCase()}${index + 1}">${nombre.ID_US}</label>
-              </div>
-            `;
-          });
-
-          // Agregar campo "NULO" al final
-          radioFieldsHtml += `
-              <div>
-                  <input type="radio" id="${title.toLowerCase()}Nulo" name="${title.toLowerCase()}" value="NULO">
-                  <label for="${title.toLowerCase()}Nulo">NULO</label>
-              </div>
-              <br><div style="background-color: white; width: 105%; margin-left:-20px">
-                <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
-              </div>
+        Object.keys(listas).forEach((listaId, index) => {
+          const lista = listas[listaId];
+          let listaHtml = `
+          <div class="input-container form-check-inline" >
+            <input class="radio-button" type="radio" id="lista${index + 1}" name="lista" value="LISTA${index + 1}">&nbsp&nbsp
+            <div class="radio-tile">
+              <h4 style="color: var(--accent-color); padding-top: 15px; font-weight: bold;">Lista ${index + 1} - ${lista.nombreLista}</h4>
+              <hr>
+              <label for="lista${index + 1}" >
+                <div class="row">
+                  <div class="col-md-6" style="text-align: center;">
+                    <img src="../assets/img/fotosListas/fotoPresidenteLista${index + 1}periodo${periodo}.png" alt="Presidente ${index + 1}" style="width: 120px; height: 144.4px; display: block; margin: 0 auto;" onerror="this.onerror=null; this.src='../assets/img/fotosListas/defaultCandidato.png';">
+                    <span class="lista-item">Presidente</span>
+                  </div>
+                  <div class="col-md-6" style="text-align: center;">
+                    <img src="../assets/img/fotosListas/fotoVicepresidenteLista${index + 1}periodo${periodo}.png" alt="Vicepresidente ${index + 1}" style="width: 120px; height: 144.4px; display: block; margin: 0 auto;" onerror="this.onerror=null; this.src='../assets/img/fotosListas/defaultCandidato.png';">
+                    <span class="lista-item" style="text-align: center;">Vicepresidente</span>
+                  </div>
+                </div>
+                <br>
+                <span class="lista-item">Presidente:</span> ${lista.presidente}<br>
+                <span class="lista-item">Vicepresidente:</span> ${lista.vicepresidente}<br>
+                <span class="lista-item">Secretario:</span> ${lista.secretario}<br>
+                <span class="lista-item">Tesorero:</span> ${lista.tesorero}<br>
+                <span class="lista-item">Síndico:</span> ${lista.sindico}<br>
+                <span class="lista-item">Vocal Principal 1:</span> ${lista.vocalesPrincipales[0]}<br>
+                <span class="lista-item">Vocal Principal 2:</span> ${lista.vocalesPrincipales[1]}<br>
+                <span class="lista-item">Vocal Principal 3:</span> ${lista.vocalesPrincipales[2]}<br>
+                <span class="lista-item">Vocal Suplente 1:</span> ${lista.vocalesSuplentes[0]}<br>
+                <span class="lista-item">Vocal Suplente 2:</span> ${lista.vocalesSuplentes[1]}<br>
+                <span class="lista-item">Vocal Suplente 3:</span> ${lista.vocalesSuplentes[2]}
+              </label>
+            </div>
+            <br>
+          </div>
           `;
-          return radioFieldsHtml;
-        }
+          checkboxesContainer.innerHTML += listaHtml;
+        });
 
-        checkboxesContainer.innerHTML += generateRadioFields('Presidente', data.presidente || []);
-        checkboxesContainer.innerHTML += generateRadioFields('Vicepresidente', data.vicepresidente || []);
-        checkboxesContainer.innerHTML += generateRadioFields('Secretario', data.secretario || []);
-        checkboxesContainer.innerHTML += generateRadioFields('Subsecretario', data.subsecretario || []);
+        // Agregar campo "NULO" al final
+        checkboxesContainer.innerHTML += `<br>
+            </div></form>
+          `;
 
       } catch (error) {
         console.error('Error:', error);
@@ -254,14 +324,12 @@
       try {
         // Obtener el usuario desde localStorage
         const usuario = localStorage.getItem('usuario');
+        const listaseleccionada = document.querySelector('input[name="lista"]:checked').value;
 
         // Obtener los datos del formulario
         const formData = {
           periodo: periodo,
-          presidente: obtenerCandidatosSeleccionados('presidente'),
-          vicepresidente: obtenerCandidatosSeleccionados('vicepresidente'),
-          secretario: obtenerCandidatosSeleccionados('secretario'),
-          subsecretario: obtenerCandidatosSeleccionados('subsecretario')
+          idLista: listaseleccionada
         };
 
         // Enviar la solicitud POST al servidor
@@ -283,15 +351,6 @@
       }
     });
 
-    // Función para obtener los candidatos seleccionados por tipo
-    function obtenerCandidatosSeleccionados(tipo) {
-      const candidatos = [];
-      const checkboxes = document.querySelectorAll(`input[name=${tipo.toLowerCase()}]:checked`);
-      checkboxes.forEach((checkbox) => {
-        candidatos.push(checkbox.value);
-      });
-      return candidatos;
-    }
     document.addEventListener('DOMContentLoaded', (event) => {
       // Obtener el nombre del usuario desde el LocalStorage
       const usuario = localStorage.getItem('usuario');

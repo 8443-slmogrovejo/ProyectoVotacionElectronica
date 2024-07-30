@@ -8,8 +8,7 @@
   <meta content="" name="keywords">
 
   <!-- Favicons -->
-  <link href="../assets/img/favicon.png" rel="icon">
-  <link href="../assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="../assets/img/logo.png" rel="icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -85,12 +84,13 @@
       </div>
       <div class="container">
         <div class="row px-0" style="margin-top: -50px;">
-          <div class="col-lg-2 order-1 order-lg-1 content" data-aos="fade-up" data-aos-delay="200"></div>
-          <div class="col-lg-8 order-2 order-lg-1 content imagenFondoESPE" data-aos="fade-up" data-aos-delay="200"></div>
-          <div class="col-lg-2 order-2 order-lg-1 content" data-aos="fade-up" data-aos-delay="200"></div>
-          <div class="col-lg-2 order-1 order-lg-1 content" data-aos="fade-up" data-aos-delay="200"></div>
-          <div class="col-lg-8 order-2 order-lg-1 content form-container"data-aos="fade-up" data-aos-delay="200">
-            <p id="mensajePrev" style="text-align: center; font-size: 12px;">En esta previsualización usted confirmará los candidatos ingresados previamente. De esta precisa manera es como se desplegará al votante el formulario de votación.</p>
+          <!-- <div class="col-lg-2 order-1 order-lg-1 content" data-aos="fade-up" data-aos-delay="200"></div> -->
+          <div class="col-lg-12 order-2 order-lg-1 content imagenFondoESPEVotacion" data-aos="fade-up" data-aos-delay="200"></div>
+          <!-- <div class="col-lg-2 order-2 order-lg-1 content" data-aos="fade-up" data-aos-delay="200"></div> -->
+          <!-- <div class="col-lg-2 order-1 order-lg-1 content" data-aos="fade-up" data-aos-delay="200"></div> -->
+          <div class="col-lg-12 order-2 order-lg-1 content form-container"data-aos="fade-up" data-aos-delay="200">
+            <h7 id="mensajePrev" style="text-align: center;">En esta previsualización usted confirmará los candidatos ingresados previamente. De esta precisa manera es como se desplegará al votante el formulario de votación.</h7>
+            <br>
             <div class="row">
               <div class="col-md-12">
                 <form id="votacionForm">
@@ -136,45 +136,63 @@
 
     // Generar campos de radio para cada nombre
     const checkboxesContainer = document.getElementById('checkboxesContainer');
-    checkboxesContainer.innerHTML += `<h4 style:"font-weight: bold;">Periodo ${periodo}</h4><form id="secondForm">
-      <br><div style="background-color: white; width: 105%; margin-left: -20px;">
-            <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
-          </div>`;
-
-    function generateRadioFields(title, nombres) {
-      if (nombres.length === 0) {
-        return '';
-      }
-      let radioFieldsHtml = `<h4 style="color: var(--accent-color); padding-top: 15px; font-weight: bold;">${title}</h4><hr>`;
-      nombres.forEach((nombre, index) => {
-        radioFieldsHtml += `
-          <div>
-            <input type="radio" id="${title.toLowerCase()}${index + 1}" name="${title.toLowerCase()}" value="${nombre}">
-            <label for="${title.toLowerCase()}${index + 1}">${nombre}</label>
-          </div>
-        `;
-      });
-
-      // Agregar campo "NULO" al final
-      radioFieldsHtml += `
-        <div>
-          <input type="radio" id="${title.toLowerCase()}Nulo" name="${title.toLowerCase()}" value="NULO">
-          <label for="${title.toLowerCase()}Nulo">NULO</label>
+    checkboxesContainer.innerHTML += `<br><h3 style:"font-weight: bold;">Periodo ${periodo}</h3>
+    <form id="secondForm">
+      <br>
+      <hr>
+      <br>
+      <div class="radio-tile-group">
+        <div class="form-check-inline col-md-1"></div>
+        <div class="form-check-inline col-md-10">
+          <input class="radio-button-nulo" type="radio" id="nulo" name="lista" value="NULO">
+          <label class="btn-nulo" for="nulo"> VOTAR NULO</label>
         </div>
-        <br><div style="background-color: white; width: 105%; margin-left:-20px">
-          <div style="background-color: rgba(0, 0, 0, 0.1); width: 100%; height: 15px;"></div>
-        </div>
+        <div class="form-check-inline col-md-1"></div>
       `;
 
-      return radioFieldsHtml;
-    }
+    formData.listas.forEach((lista, index) => {
+      let listaHtml = `
+      <div class="input-container form-check-inline" >
+        <input class="radio-button" type="radio" id="lista${index + 1}" name="lista" value="${index}">&nbsp&nbsp
+        <div class="radio-tile">
+          <h4 style="color: var(--accent-color); padding-top: 15px; font-weight: bold;">Lista ${index + 1} - ${lista.nombreLista}</h4>
+          <hr>
+          <label for="lista${index + 1}" >
+            <div class="row">
+              <div class="col-md-6" style="text-align: center;">
+                <img src="../assets/img/fotosListas/fotoPresidenteLista${index + 1}periodo${periodo}.png" alt="Presidente ${index + 1}" style="width: 120px; height: 144.4px; display: block; margin: 0 auto;">
+                <span class="lista-item">Presidente</span>
+              </div>
+              <div class="col-md-6" style="text-align: center;">
+                <img src="../assets/img/fotosListas/fotoVicepresidenteLista${index + 1}periodo${periodo}.png" alt="Vicepresidente ${index + 1}" style="width: 120px; height: 144.4px; display: block; margin: 0 auto;">
+                <span class="lista-item" style="text-align: center;">Vicepresidente</span>
+              </div>
+            </div>
+            <br>
+            <span class="lista-item">Presidente:</span> ${lista.presidente}<br>
+            <span class="lista-item">Vicepresidente:</span> ${lista.vicepresidente}<br>
+            <span class="lista-item">Secretario:</span> ${lista.secretario}<br>
+            <span class="lista-item">Tesorero:</span> ${lista.tesorero}<br>
+            <span class="lista-item">Síndico:</span> ${lista.sindico}<br>
+            <span class="lista-item">Vocal Principal 1:</span> ${lista.vocalesPrincipales[0]}<br>
+            <span class="lista-item">Vocal Principal 2:</span> ${lista.vocalesPrincipales[1]}<br>
+            <span class="lista-item">Vocal Principal 3:</span> ${lista.vocalesPrincipales[2]}<br>
+            <span class="lista-item">Vocal Suplente 1:</span> ${lista.vocalesSuplentes[0]}<br>
+            <span class="lista-item">Vocal Suplente 2:</span> ${lista.vocalesSuplentes[1]}<br>
+            <span class="lista-item">Vocal Suplente 3:</span> ${lista.vocalesSuplentes[2]}
+          </label>
+        </div>
+        <br>
+      </div>
+      `;
+      checkboxesContainer.innerHTML += listaHtml;
+    });
 
-    // Generar campos de radio para cada dignidad
-    checkboxesContainer.innerHTML += generateRadioFields('Presidente', formData.presidente || []);
-    checkboxesContainer.innerHTML += generateRadioFields('Vicepresidente', formData.vicepresidente || []);
-    checkboxesContainer.innerHTML += generateRadioFields('Secretario', formData.secretario || []);
-    checkboxesContainer.innerHTML += generateRadioFields('Subsecretario', formData.subsecretario || []);
-  
+    // Agregar campo "NULO" al final
+    checkboxesContainer.innerHTML += `<br>
+        </div></form>
+      `;
+      
     // Evento para regresar al formulario anterior
     const backButton = document.getElementById('backButton');
     backButton.addEventListener('click', function() {
